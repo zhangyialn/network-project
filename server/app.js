@@ -65,8 +65,20 @@ io.on('connection', (socket) => {
       // 确保只在这里保存消息到数据库
       const savedMessage = await Message.create(message);
 
+      // 获取发送者的用户信息
+      const sender = await User.findByPk(message.sender_id);
+
+      // 将用户信息添加到消息中
+      const messageWithSender = {
+        ...savedMessage.toJSON(),
+        sender: {
+          id: sender.id,
+          username: sender.username
+        }
+      };
+
       // 发送消息给接收用户
-      io.to(`user_${message.receiver_id}`).emit('newMessage', savedMessage);
+      io.to(`user_${message.receiver_id}`).emit('newMessage', messageWithSender);
     } catch (error) {
       console.error('Error sending message:', error);
     }

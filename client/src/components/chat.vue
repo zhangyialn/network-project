@@ -103,6 +103,13 @@ const setupSocket = () => {
   // 监听新消息事件
   socket.value.on('newMessage', (message) => {
     if (message.receiver_id === currentUser.value.id) {
+      // 确保消息中包含发送者信息
+      const sender = users.value.find(u => u.id === message.sender.id);
+      if (sender) {
+        message.sender.username = sender.username;
+      } else {
+        message.sender.username = '未知用户';
+      }
       messages.value.push(message);
       scrollToBottom();
     }
