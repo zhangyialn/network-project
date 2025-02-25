@@ -63,7 +63,11 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', async (message) => {
     try {
       // 确保只在这里保存消息到数据库
-      const savedMessage = await Message.create(message);
+      const savedMessage = await Message.create({
+        sender_id: message.sender_id,
+        receiver_id: message.receiver_id,
+        content: message.content
+      });
 
       // 获取发送者的用户信息
       const sender = await User.findByPk(message.sender_id);
@@ -79,6 +83,9 @@ io.on('connection', (socket) => {
 
       // 发送消息给接收用户
       io.to(`user_${message.receiver_id}`).emit('newMessage', messageWithSender);
+
+      // 发送消息给发送者以更新本地消息列表
+      io.to(`user_${message.sender_id}`).emit('newMessage', messageWithSender);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -88,11 +95,18 @@ io.on('connection', (socket) => {
   socket.on('fileTransferComplete', async (fileInfo) => {
     try {
       // 更新文件传输状态到数据库
+      console.log(fileInfo);
       await FileTransfer.update(
         { transfer_status: 'completed', progress: 100 },
-        { where: { id: fileInfo.id } }
+        {
+          where: {
+            sender_id: fileInfo.sender_id,
+            receiver_id: fileInfo.receiver_id,
+            file_name: fileInfo.file_name
+          }
+        }
       );
-
+      console.log('emit fileTransferUpdate');
       // 发送文件传输更新给接收用户
       io.to(`user_${fileInfo.receiver_id}`).emit('fileTransferUpdate', fileInfo);
     } catch (error) {

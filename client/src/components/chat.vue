@@ -59,12 +59,16 @@ const sendMessage = async () => {
     const message = {
       sender_id: currentUser.value.id,
       receiver_id: selectedUser.value.id,
-      content: newMessage.value
+      content: newMessage.value,
+      sender: {
+        id: currentUser.value.id,
+        username: currentUser.value.username
+      }
     };
 
     // 通过 WebSocket 发送消息
     socket.value.emit('sendMessage', message);
-
+    console.log(message);
     // 立即更新本地消息列表
     messages.value.push(message);
     newMessage.value = '';
@@ -104,6 +108,7 @@ const setupSocket = () => {
   socket.value.on('newMessage', (message) => {
     if (message.receiver_id === currentUser.value.id) {
       // 确保消息中包含发送者信息
+      console.log(message);
       const sender = users.value.find(u => u.id === message.sender.id);
       if (sender) {
         message.sender.username = sender.username;
@@ -269,6 +274,11 @@ const uploadFile = async (event) => {
     ElMessage.success('文件上传成功');
     // 上传完成后更新用户信息
     await fetchMessages(selectedUser.value.id);
+    socket.value.emit('fileTransferComplete', {
+      sender_id: currentUser.value.id,
+      receiver_id: selectedUser.value.id,
+      file_name: decodeURIComponent(fileName)
+    });
   }
 };
 
